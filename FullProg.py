@@ -37,7 +37,7 @@ class Handler(FileSystemEventHandler):
             print("Watchdog received created event - % s." % event.src_path)
             if "txt" in event.src_path:
                 labTasks = []
-                RobotTasks = []
+                robotTasks = []
                 taskList = []
                 with open(event.src_path) as f:
                     # Read the tasks sent by the Laboratory Scheduler and store them in a list (LabSchedulerTasks)
@@ -50,13 +50,13 @@ class Handler(FileSystemEventHandler):
                     parser = ConfigParser()
                     parser.read("taskConfig.ini")
                     for path in labTasks:
-                        RobotTasks.append(parser.get('Task', path).split(","))
+                        robotTasks.append(parser.get('Task', path).split(","))
                     print("Robot Tasks are:")
-                    print(RobotTasks)
+                    print(robotTasks)
 
                     # Create a Tasklist with status NotDone
                     taskNumber = 0
-                    for labTask in RobotTasks:
+                    for labTask in robotTasks:
                         for robotTask in labTask:
                             taskList.append([taskNumber, robotTask, "NotDone"])
                             taskNumber += 1
