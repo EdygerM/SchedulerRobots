@@ -8,97 +8,109 @@ from watchdog.events import PatternMatchingEventHandler
 from threading import Event
 
 
-# Define base class Robot with a name
+# Base class for all Robots with a common attribute of a unique name
 class Robot:
     def __init__(self, name):
         self.name = name
 
 
+# Class for Universal Robots that can host a server, send tasks and wait for tasks to end
 class UniversalRobot(Robot):
     def __init__(self, name, host, port):
         super().__init__(name)
         self.host = host
         self.port = port
-        self.conn = None
-        self.s = None
-        self.server_running = False  # Add another flag to indicate whether the server is running or not
+        self.connection = None
+        self.server_socket = None
+        self.is_server_running = False
         self.stop_thread = False
-        self.connection_event = Event()  # Add this line
+        self.connection_event = Event()
 
     def start_server(self):
+        """
+        Start a server that listens for incoming connections in a separate thread.
+        Non-blocking mode is used, i.e., the server does not block waiting for connections.
+        """
+
         def server_func():
-            self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.s.bind((self.host, self.port))
-            self.s.listen()
-            self.s.setblocking(False)  # set the socket to non-blocking mode
-            self.server_running = True  # Set the flag to True as the server has started
-            while self.server_running:  # check the flag in the loop
+            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.server_socket.bind((self.host, self.port))
+            self.server_socket.listen()
+            self.server_socket.setblocking(False)  # set the socket to non-blocking mode
+            self.is_server_running = True
+            while self.is_server_running:
                 try:
-                    self.conn, addr = self.s.accept()
+                    self.connection, addr = self.server_socket.accept()
                     print(f'Connected by {addr}')
-                    self.connection_event.set()  # Add this line
+                    self.connection_event.set()  # Signal that a connection has been made
                 except socket.error as e:
                     if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
                         raise
-                    time.sleep(1)  # no connection, sleep for a while and try again
+                    time.sleep(1)  # No connection, sleep for a while and try again
                 except Exception as e:
                     print(f"An error occurred: {e}")
-            self.s.close()
+            self.server_socket.close()
             print("Server function exited.")
 
-        self.stop_thread = False
         server_thread = threading.Thread(target=server_func)
         server_thread.start()
         print(f"Server started on {self.host}:{self.port}")
 
     def stop_server(self):
-        self.stop_thread = True
-        self.server_running = False  # Set the flag to False as the server is about to stop
-        if self.conn:
-            self.conn.close()
-        if self.s:
-            self.s.close()
+        """
+        Stop the server and close the connection and the socket.
+        """
+
+        self.is_server_running = False
+        if self.connection:
+            self.connection.close()
+        if self.server_socket:
+            self.server_socket.close()
         print(f"Server stopped on {self.host}:{self.port}")
 
     def send_task(self, task):
-        """Sends a task to the robot's server"""
+        """
+        Sends a task to the robot's server.
+        """
 
         try:
-            self.conn.sendall(task.encode())
+            self.connection.sendall(task.encode())
             print(f"Task '{task}' sent to {self.name}")
         except Exception as e:
             print(f"An error occurred: {e}")
 
     def wait_task_end(self, task):
-        """Waits for a task to end"""
+        """
+        Waits for a task to end. The function blocks until a response is received from the server.
+        """
 
         print(f"Waiting task '{task}' ending from {self.name}")
         while True:
-            if self.conn is None:
-                time.sleep(1)  # wait for a while before trying again
+            if self.connection is None:
+                time.sleep(1)
                 continue
-            data = self.conn.recv(1024)
+            data = self.connection.recv(1024)
             if data:
                 print(f"Task ended. Received message: {data.decode()}")
                 break
-            time.sleep(1)  # wait for a while before trying to read again
+            time.sleep(1)
 
 
-# Define a class for mobile robot with functionalities to send tasks and wait for them to end
+# Class for Mobile Robots that can send tasks and wait for tasks to end
 class MobileRobot(Robot):
     def __init__(self, name):
         super().__init__(name)
 
     def send_task(self, task):
         print(f"Sending task '{task}' to {self.name}")
-        time.sleep(1)  # simulate sending task
+        time.sleep(1)  # Simulate the time it takes to send a task
 
     def wait_task_end(self, task):
         print(f"Waiting task '{task}' ending from {self.name}")
-        time.sleep(1)  # simulate waiting for task to end
+        time.sleep(1)  # Simulate the time it takes for a task to end
 
 
-# Represents a path with a list of tasks to execute
+# Class for a Path that has a series of tasks that can be executed by the robots
 class Path:
     def __init__(self, ID, Name, StartPosition, EndPosition, Action, PlateNumber, handler, task_queue=None):
         self.ID = ID
@@ -108,12 +120,14 @@ class Path:
         self.Action = Action
         self.PlateNumber = PlateNumber
         self.handler = handler
-        self.EM = MobileRobot("EM")  # mobile robot
-        self.task_queue = task_queue or self.initialize_task_queue()  # Initialize the task queue with tasks for the robots
-        self.stop_thread = False  # Add this attribute to stop the thread
+        self.EM = MobileRobot("EM")  # Mobile robot
+        self.task_queue = task_queue or self.initialize_task_queue()
+        self.stop_thread = False
 
     def initialize_task_queue(self):
-        """Initialize the task queue with tasks for the robots"""
+        """
+        Initialize the task queue with tasks for the robots
+        """
 
         return [(self.EM, f"EM_to_{self.StartPosition}", "NotDone"),
                 (robots_dict[("UR_" + self.StartPosition)], "Place", "NotDone"),
@@ -121,26 +135,34 @@ class Path:
                 (robots_dict[("UR_" + self.EndPosition)], "Pick", "NotDone")]
 
     def execute_tasks(self):
-        """Execute tasks in the task queue one by one"""
-        while self.task_queue and not self.stop_thread:  # Add check for self.stop_thread
-            robot, task, state = self.task_queue[0]  # peek at the first element
+        """
+        Execute tasks in the task queue one by one. If the task queue is empty, remove this path from the handler.
+        """
+
+        while self.task_queue and not self.stop_thread:
+            robot, task, state = self.task_queue[0]
             if state == "NotDone":
                 robot.send_task(task)
-                self.task_queue[0] = (robot, task, "IsDoing")  # update state to "IsDoing"
-                self.handler.save_state()  # save current state
+                self.task_queue[0] = (robot, task, "IsDoing")
+                self.handler.save_state()
             elif state == "IsDoing":
                 robot.wait_task_end(task)
-                self.task_queue.pop(0)  # remove the first element
-                self.handler.save_state()  # save current state
-        if not self.task_queue:  # Add this condition to remove the path from the handler only if the task_queue is empty
-            self.handler.remove_path(self)  # After all tasks are done, remove this path from the handler
+                self.task_queue.pop(0)
+                self.handler.save_state()
+        if not self.task_queue:
+            self.handler.remove_path(self)
 
-    def stop_tasks(self):  # Add this method to stop tasks
-        """Stops executing tasks"""
+    def stop_tasks(self):
+        """
+        Stop executing tasks.
+        """
+
         self.stop_thread = True
 
     def to_dict(self):
-        """Convert this path to a dictionary for serialization"""
+        """
+        Convert this path to a dictionary for serialization.
+        """
 
         return {
             "ID": self.ID,
@@ -153,52 +175,62 @@ class Path:
         }
 
 
-# Handles file system events and maintains a list of paths
-class MyHandler(PatternMatchingEventHandler):
-    patterns = ["*.json"]  # only process json files
+# Class for a handler that handles file system events and maintains a list of paths
+class PathHandler(PatternMatchingEventHandler):
+    patterns = ["*.json"]
 
     def __init__(self):
         super().__init__()
-        self.path_list = []  # list of paths to execute
-        self.load_state()  # load state from file at startup
+        self.path_list = []
+        self.load_state()
 
     def process(self, event):
-        """Process a new json file"""
+        """
+        Process a new json file, create a new Path object and start executing its tasks.
+        """
 
         with open(event.src_path, 'r') as file:
             data = json.load(file)
             for path in data['paths']:
-                # Create a new Path object and start executing its tasks
                 path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
                                 path['EndPosition'], path['Action'], path['PlateNumber'], self)
                 self.path_list.append(path_obj)
                 threading.Thread(target=path_obj.execute_tasks).start()
 
+    def print_all_names(self):
+        """
+        Print the names of all path objects. This is useful for debugging.
+        """
+        for path_obj in self.path_list:
+            print(path_obj.name)
+
     def on_created(self, event):
-        """Called when a new file is created"""
+        """
+        Called when a new file is created.
+        """
 
         self.process(event)
 
-    def print_all_names(self):
-        """Print names of all paths for debugging"""
-
-        for path_obj in self.path_list:
-            print(path_obj.Name)
-
     def remove_path(self, path_obj):
-        """Remove a path from the list"""
+        """
+        Remove a path from the list.
+        """
 
         self.path_list.remove(path_obj)
 
     def save_state(self):
-        """Save the current state to a file"""
+        """
+        Save the current state to a file.
+        """
+
         with open('state.json', 'w') as f:
-            # Filter paths that have non-empty task queues
             paths_to_save = [p for p in self.path_list if p.task_queue]
             json.dump([p.to_dict() for p in paths_to_save], f, indent=4)
 
     def load_state(self):
-        """Load state from a file"""
+        """
+        Load state from a file.
+        """
 
         try:
             with open('state.json', 'r') as file:
@@ -217,10 +249,12 @@ class MyHandler(PatternMatchingEventHandler):
                     self.path_list.append(path_obj)
                     threading.Thread(target=path_obj.execute_tasks).start()
         except FileNotFoundError:
-            pass  # state file does not exist yet
+            pass
 
-    def stop_all_tasks(self):  # Add this method to stop all tasks
-        """Stops executing all tasks"""
+    def stop_all_tasks(self):
+        """
+        Stop executing all tasks.
+        """
 
         for path in self.path_list:
             path.stop_tasks()
@@ -228,23 +262,27 @@ class MyHandler(PatternMatchingEventHandler):
 
 if __name__ == '__main__':
 
-    # Load robot info from json file
-    with open('robots_info.json', 'r') as f:
+    # Load robot info from json file and create an instance for each robot and start the server
+    with open('setup_universal_robot.json', 'r') as f:
         robots_info = json.load(f)
 
-        # Create an instance for each robot and start the server
-    robots_dict = {}
+    robot_instances = {}
     for info in robots_info:
         UR = UniversalRobot(info["name"], info["host"], info["port"])
         UR.start_server()
-        robots_dict[info["name"]] = UR
+        robot_instances[info["name"]] = UR
+
+    # Define robots_dict
+    robots_dict = {}
+    for name, instance in robot_instances.items():
+        robots_dict[name] = instance
 
     # Wait for all UR servers to accept at least one connection each
-    for UR in robots_dict.values():
+    for UR in robot_instances.values():
         UR.connection_event.wait()
 
-    input_path = "/home/mariano/Music"  # directory to watch
-    handler = MyHandler()
+    input_path = "/home/mariano/Music"  # Directory to watch
+    handler = PathHandler()
     observer = Observer()
     observer.schedule(handler, input_path, recursive=False)
     observer.start()
@@ -252,12 +290,12 @@ if __name__ == '__main__':
 
     try:
         while running:
-            time.sleep(1)  # keep the program running
+            time.sleep(1)
     except KeyboardInterrupt:
-        handler.print_all_names()  # print names of all paths for debugging
-        for path_ in handler.path_list:  # Stop all tasks
-            path_.stop_tasks()
-        for UR in robots_dict.values():  # Stop all servers
+        handler.print_all_names()
+        for path in handler.path_list:  # Stop all tasks
+            path.stop_tasks()
+        for UR in robot_instances.values():  # Stop all servers
             UR.stop_server()
         observer.stop()
         time.sleep(1)  # Allow some time for all servers and tasks to stop
