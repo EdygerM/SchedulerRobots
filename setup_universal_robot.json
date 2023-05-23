@@ -1,8 +1,8 @@
 [
-    {"name": "UR_Hplc", "host": "localhost", "port": 8001},
-    {"name": "UR_Hplc2", "host": "localhost", "port": 8002},
-    {"name": "UR_Synth", "host": "localhost", "port": 8003},
-    {"name": "UR_Omni", "host": "localhost", "port": 8004},
-    {"name": "UR_Sfc", "host": "localhost", "port": 8005},
-    {"name": "UR_Nmr", "host": "localhost", "port": 8006}
+    {"name": "UR_HPLC", "host": "localhost", "port": 8001},
+    {"name": "UR_HPLC2", "host": "localhost", "port": 8002},
+    {"name": "UR_SYNTH", "host": "localhost", "port": 8003},
+    {"name": "UR_OMNI", "host": "localhost", "port": 8004},
+    {"name": "UR_SFC", "host": "localhost", "port": 8005},
+    {"name": "UR_NMR", "host": "localhost", "port": 8006}
 ]

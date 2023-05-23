@@ -6,13 +6,13 @@ from robot import MobileRobot
 
 
 # Class for a handler that handles file system events and maintains a list of paths
-class PathHandler(PatternMatchingEventHandler):
+class RobotHandler(PatternMatchingEventHandler):
     patterns = ["*.json"]
 
-    def __init__(self, robots_dict):
+    def __init__(self, ur_dict):
         super().__init__()
         self.path_list = []
-        self.robots_dict = robots_dict
+        self.ur_dict = ur_dict
         self.load_state()
 
     def process(self, event):
@@ -24,7 +24,7 @@ class PathHandler(PatternMatchingEventHandler):
             data = json.load(file)
             for path in data['paths']:
                 path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
-                                path['EndPosition'], path['Action'], path['PlateNumber'], self, self.robots_dict)
+                                path['EndPosition'], path['Action'], path['PlateNumber'], self, self.ur_dict)
                 self.path_list.append(path_obj)
                 threading.Thread(target=path_obj.execute_tasks).start()
 
@@ -72,10 +72,10 @@ class PathHandler(PatternMatchingEventHandler):
                         if 'EM' in robot_name:
                             robot = MobileRobot(robot_name)
                         else:
-                            robot = self.robots_dict[robot_name]
+                            robot = self.ur_dict[robot_name]
                         task_queue.append((robot, task, state))
                     path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
-                                    path['EndPosition'], path['Action'], path['PlateNumber'], self, self.robots_dict,
+                                    path['EndPosition'], path['Action'], path['PlateNumber'], self, self.ur_dict,
                                     task_queue)
                     self.path_list.append(path_obj)
                     threading.Thread(target=path_obj.execute_tasks).start()
