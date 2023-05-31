@@ -5,19 +5,19 @@ from robot_handler import RobotHandler
 import logging
 from utility import load_json_file
 
+
 # UR_SETUP_FILE: The file containing the setup information for Universal Robots
 UR_SETUP_FILE = "setup_universal_robot.json"
 
 # INPUT_PATH: The directory which the program will monitor for changes
 INPUT_PATH = "/home/mariano/Music"
 
-
 # Configure the logging settings
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     filename='app.log',
-    filemode='w'
+    filemode='a'
 )
 
 
@@ -77,6 +77,9 @@ def stop_observer(observer):
 
 
 if __name__ == '__main__':
+    logging.info(" ")
+    logging.info("START OF SCRIPT")
+
     # Initialize Universal Robot instances and start their servers
     ur_instance = setup_universal_robots()
 
