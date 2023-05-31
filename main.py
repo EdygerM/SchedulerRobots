@@ -8,6 +8,10 @@ from utility import load_json_file
 # UR_SETUP_FILE: The file containing the setup information for Universal Robots
 UR_SETUP_FILE = "setup_universal_robot.json"
 
+# INPUT_PATH: The directory which the program will monitor for changes
+INPUT_PATH = "/home/mariano/Music"
+
+
 # Configure the logging settings
 logging.basicConfig(
     level=logging.DEBUG,
@@ -77,12 +81,11 @@ if __name__ == '__main__':
     ur_instance = setup_universal_robots()
 
     # Set up file system monitoring for specified directory
-    input_path = "/home/mariano/Music"  # Directory to watch
     robotHandler = RobotHandler(ur_instance)
     schedulerObserver = Observer()
 
     # Schedule the robotHandler to watch for changes in the input_path
-    schedulerObserver.schedule(robotHandler, input_path, recursive=False)
+    schedulerObserver.schedule(robotHandler, INPUT_PATH, recursive=False)
     schedulerObserver.start()
     running = True
 
