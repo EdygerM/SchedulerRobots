@@ -1,4 +1,5 @@
 from robot import MobileRobot, UniversalRobot
+import logging
 
 
 # Class for a Path that has a series of tasks that can be executed by the robots

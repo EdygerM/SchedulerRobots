@@ -3,6 +3,7 @@ import json
 from watchdog.events import PatternMatchingEventHandler
 from path import Path
 from robot import MobileRobot
+import logging
 
 
 # Class for a handler that handles file system events and maintains a list of paths

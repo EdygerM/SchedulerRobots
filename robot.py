@@ -3,6 +3,7 @@ import socket
 import time
 import threading
 from threading import Event
+import logging
 
 
 # Base class for all Robots with a common attribute of a unique name
@@ -40,14 +41,14 @@ class UniversalRobot(Robot):
                 while self.is_server_running and self.server_socket is not None:
                     try:
                         self.connection, addr = self.server_socket.accept()
-                        print(f'Connected by {addr}')
+                        logging.info(f'Connected by {addr}')
                         self.connection_event.set()  # Signal that a connection has been made
                     except socket.error as e:
                         if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
                             raise
                         time.sleep(1)  # No connection, sleep for a while and try again
                     except Exception as e:
-                        print(f"An error occurred: {e}")
+                        logging.exception(f"An error occurred: {e}")
             finally:
                 if self.server_socket is not None:
                     self.server_socket.close()
