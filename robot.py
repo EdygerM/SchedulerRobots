@@ -6,15 +6,16 @@ from threading import Event
 import logging
 
 
-# Base class for all Robots with a common attribute of a unique name
+# Robot: Base class for all Robots with a common attribute of a unique name
 class Robot:
     def __init__(self, name):
         self.name = name
 
 
-# Class for Universal Robots that can host a server, send tasks and wait for tasks to end
+# UniversalRobot: Class for Universal Robots that can host a server, send tasks, and wait for tasks to end
 class UniversalRobot(Robot):
     def __init__(self, name, host, port):
+        # Initiate UniversalRobot instance with a name, host, and port
         super().__init__(name)
         self.host = host
         self.port = port
@@ -31,36 +32,40 @@ class UniversalRobot(Robot):
         Non-blocking mode is used, i.e., the server does not block waiting for connections.
         """
 
+        # server_func: Internal function to handle the server functionality
         def server_func():
             try:
+                logging.info(f"Attempting to start server on {self.host}:{self.port} for {self.name}.")
+                # Create a server socket, bind it, and set it to listen
                 self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.server_socket.bind((self.host, self.port))
                 self.server_socket.listen()
-                self.server_socket.setblocking(False)  # set the socket to non-blocking mode
+                self.server_socket.setblocking(False)  # Set the socket to non-blocking mode
                 self.is_server_running = True
                 while self.is_server_running and self.server_socket is not None:
                     try:
+                        # Accept any incoming connections
                         self.connection, addr = self.server_socket.accept()
-                        logging.info(f'Connected by {addr}')
+                        logging.info(f'Connected by {addr} on {self.host}:{self.port} for {self.name}.')
                         self.connection_event.set()  # Signal that a connection has been made
                     except socket.error as e:
+                        # Ignore the typical errors when no connection is made, and sleep before trying again
                         if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
                             raise
-                        time.sleep(1)  # No connection, sleep for a while and try again
+                        time.sleep(1)
                     except Exception as e:
-                        logging.exception(f"An error occurred: {e}")
+                        logging.error(f"An unexpected error occurred: {str(e)}")
             finally:
+                # Close the server socket and connection when the server stops
                 if self.server_socket is not None:
                     self.server_socket.close()
                     self.server_socket = None
-                if self.connection is not None:
-                    self.connection.close()
-                    self.connection = None
-                print("Server function exited.")
+                logging.info("Server function exited.")
 
+        # Start a thread for the server function
         server_thread = threading.Thread(target=server_func)
         server_thread.start()
-        print(f"Server started on {self.host}:{self.port}")
+        logging.info(f"Server started on {self.host}:{self.port} for {self.name}.")
 
     def stop_server(self):
         """
@@ -69,11 +74,7 @@ class UniversalRobot(Robot):
 
         self.stop_flag = True  # Set the stop flag when stopping the server
         self.is_server_running = False
-        if self.connection:
-            self.connection.close()
-        if self.server_socket:
-            self.server_socket.close()
-        print(f"Server stopped on {self.host}:{self.port}")
+        logging.info(f"Server stopped on {self.host}:{self.port} for {self.name}.")
 
     def send_task(self, task):
         """
@@ -81,25 +82,26 @@ class UniversalRobot(Robot):
         """
 
         try:
+            logging.info(f"Attempting to send task '{task}' to {self.name}.")
+            # Send the task as an encoded string to the server
             self.connection.sendall(task.encode())
-            print(f"Task '{task}' sent to {self.name}")
+            logging.info(f"Task '{task}' sent to {self.name}.")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logging.error(f"An error occurred while sending task '{task}' to {self.name}: {str(e)}")
 
-    def wait_task_end(self, task):
+    def wait_task_end(self):
         """
-        Waits for a task to end. The function blocks until a response is received from the server.
+        Waits for the task to end. This is simulated by waiting for a message from the server.
         """
 
-        print(f"Waiting task '{task}' ending from {self.name}")
         while True:
-            if self.connection is None:
-                time.sleep(1)
-                continue
-            data = self.connection.recv(1024)
-            if data:
-                print(f"Task ended. Received message: {data.decode()}")
-                break
+            try:
+                data = self.connection.recv(1024)
+                if data:
+                    logging.info(f"Task ended. Received message: {data.decode()}")
+                    break
+            except Exception as e:
+                logging.error(f"An error occurred while waiting for the task to end: {str(e)}")
             time.sleep(1)
 
     def wait_for_connection(self):
@@ -109,33 +111,53 @@ class UniversalRobot(Robot):
 
         while not self.is_connected() and not self.stop_flag:
             time.sleep(1)
-            print(f"Waiting for connection to {self.name}")
+            logging.info(f"Waiting for connection to {self.name}")
 
     def is_connected(self):
         """
         Checks if the robot is currently connected to a client.
         """
+
         if self.connection is None:
             return False
         try:
-            self.connection.send(b'', socket.MSG_DONTWAIT)  # Try to send an empty message
+            # Try to send an empty message to check the connection
+            self.connection.send(b'', socket.MSG_DONTWAIT)
             return True
         except socket.error as e:
-            if e.errno == errno.EPIPE or e.errno == errno.ECONNRESET:  # Broken pipe or connection reset errors mean the client has disconnected
+            # Broken pipe or connection reset errors mean the client has disconnected
+            if e.errno == errno.EPIPE or e.errno == errno.ECONNRESET:
                 return False
             else:
                 raise
 
 
-# Class for Mobile Robots that can send tasks and wait for tasks to end
+# MobileRobot: Class for Mobile Robots that can send tasks and wait for tasks to end
 class MobileRobot(Robot):
     def __init__(self, name):
+        # Initiate MobileRobot instance with a name
         super().__init__(name)
 
     def send_task(self, task):
-        print(f"Sending task '{task}' to {self.name}")
-        time.sleep(1)  # Simulate the time it takes to send a task
+        """
+        Sends a task to the mobile robot.
+        """
+
+        try:
+            logging.info(f"Attempting to send task '{task}' to {self.name}.")
+            time.sleep(1)  # Simulate the time it takes to send a task
+            logging.info(f"Task '{task}' sent to {self.name}.")
+        except Exception as e:
+            logging.error(f"An error occurred while sending task '{task}' to {self.name}: {str(e)}")
 
     def wait_task_end(self, task):
-        print(f"Waiting task '{task}' ending from {self.name}")
-        time.sleep(1)  # Simulate the time it takes for a task to end
+        """
+        Waits for a task to end. This is simulated with a sleep command.
+        """
+
+        try:
+            logging.info(f"Waiting task '{task}' ending from {self.name}.")
+            time.sleep(1)  # Simulate the time it takes for a task to end
+            logging.info(f"Task '{task}' ended from {self.name}.")
+        except Exception as e:
+            logging.error(f"An error occurred while waiting for the task '{task}' to end from {self.name}: {str(e)}")
