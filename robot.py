@@ -4,6 +4,7 @@ import time
 import threading
 from threading import Event
 import logging
+import platform
 
 
 # Robot: Base class for all Robots with a common attribute of a unique name
@@ -122,11 +123,18 @@ class UniversalRobot(Robot):
             return False
         try:
             # Try to send an empty message to check the connection
-            self.connection.send(b'', socket.MSG_DONTWAIT)
+            if platform.system() == 'Linux':
+                self.connection.send(b'', socket.MSG_DONTWAIT)
+            elif platform.system() == 'Windows':
+                self.connection.setblocking(False)
+                try:
+                    self.connection.send(b'')
+                finally:
+                    self.connection.setblocking(True)
             return True
         except socket.error as e:
             # Broken pipe or connection reset errors mean the client has disconnected
-            if e.errno == errno.EPIPE or e.errno == errno.ECONNRESET:
+            if e.errno in [errno.EPIPE, errno.ECONNRESET, errno.WSAECONNRESET, errno.WSAESHUTDOWN]:
                 return False
             else:
                 raise
