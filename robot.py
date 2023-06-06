@@ -51,8 +51,12 @@ class UniversalRobot(Robot):
                         self.connection_event.set()  # Signal that a connection has been made
                     except socket.error as e:
                         # Ignore the typical errors when no connection is made, and sleep before trying again
-                        if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
-                            raise
+                        if platform.system() == 'Linux':
+                            if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+                                raise
+                        elif platform.system() == 'Windows':
+                            if e.errno != errno.WSAEWOULDBLOCK and e.errno != errno.WSAECONNABORTED:
+                                raise
                         time.sleep(1)
                     except Exception as e:
                         logging.error(f"An unexpected error occurred: {str(e)}")
