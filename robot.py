@@ -45,10 +45,13 @@ class UniversalRobot(Robot):
                 self.is_server_running = True
                 while self.is_server_running and self.server_socket is not None:
                     try:
-                        # Accept any incoming connections
-                        self.connection, addr = self.server_socket.accept()
-                        logging.info(f'Connected by {addr} on {self.host}:{self.port} for {self.name}.')
-                        self.connection_event.set()  # Signal that a connection has been made
+                        # Check if there is no connection or the current connection is closed
+                        if self.connection is None or self.is_client_disconnected():
+                            self.connection, addr = self.server_socket.accept()
+                            logging.info(f'Connected by {addr} on {self.host}:{self.port} for {self.name}.')
+                            self.connection_event.set()  # Signal that a connection has been made
+                        else:
+                            time.sleep(1)
                     except socket.error as e:
                         # Ignore the typical errors when no connection is made, and sleep before trying again
                         if platform.system() == 'Linux':
@@ -142,6 +145,20 @@ class UniversalRobot(Robot):
                 return False
             else:
                 raise
+
+    # Helper function to check if the client is disconnected
+    def is_client_disconnected(self):
+        try:
+            # Try to receive data, with the MSG_PEEK flag to not consume any data from the buffer
+            data = self.connection.recv(1024, socket.MSG_PEEK)
+        except ConnectionResetError:
+            # The client has disconnected
+            return True
+        except BlockingIOError:
+            # The socket is still connected and has no data to receive
+            return False
+        # If no exception was raised, check if the client has closed the connection
+        return len(data) == 0
 
 
 # MobileRobot: Class for Mobile Robots that can send tasks and wait for tasks to end
