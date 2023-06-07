@@ -1,10 +1,8 @@
-import errno
 import socket
 import time
 import threading
 from threading import Event
 import logging
-import platform
 
 
 # Robot: Base class for all Robots with a common attribute of a unique name
@@ -42,13 +40,18 @@ class UniversalRobot(Robot):
                 self.server_socket.listen()
                 self.server_socket.settimeout(1.0)  # Set a timeout of 1 second for the accept call
                 self.is_server_running = True
+                disconnected_logged = False
                 while self.is_server_running and self.server_socket is not None:
                     try:
                         # Check if there is no connection or the current connection is closed
                         if self.connection is None or self.is_client_disconnected():
+                            if not disconnected_logged:
+                                logging.info(f"Client of {self.name} has closed the connection.")
+                                disconnected_logged = True
                             self.connection, addr = self.server_socket.accept()
                             logging.info(f'Connected by {addr} on {self.host}:{self.port} for {self.name}.')
                             self.connection_event.set()  # Signal that a connection has been made
+                            disconnected_logged = False
                     except socket.timeout:
                         # If no client connected within the timeout period, just continue and try again
                         continue
@@ -67,12 +70,14 @@ class UniversalRobot(Robot):
         logging.info(f"Server started on {self.host}:{self.port} for {self.name}.")
 
     def stop_server(self):
-        """
-        Stop the server and close the connection and the socket.
-        """
-
-        self.stop_flag = True  # Set the stop flag when stopping the server
+        self.stop_flag = True
         self.is_server_running = False
+        if self.connection is not None:
+            try:
+                self.connection.close()
+                logging.info("Connection closed.")
+            except Exception as e:
+                logging.error(f"An error occurred while closing the connection: {str(e)}")
         logging.info(f"Server stopped on {self.host}:{self.port} for {self.name}.")
 
     def send_task(self, task):
@@ -139,6 +144,7 @@ class MobileRobot(Robot):
     def __init__(self, name):
         # Initiate MobileRobot instance with a name
         super().__init__(name)
+        logging.info(f"Mobile robot {self.name} initialized.")
 
     def send_task(self, task):
         """
