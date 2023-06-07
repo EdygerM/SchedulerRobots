@@ -1,4 +1,4 @@
-# Project Title: Universal Robot File System Monitor
+# Universal Robot File System Monitor
 
 ## Description
 This project is a Python-based application designed to monitor a specific directory for changes and interact with one or more Universal Robots based on those changes. Universal Robots are a brand of robotic arms used for industrial applications. 
@@ -36,6 +36,7 @@ The project uses logging to provide a transparent and trackable operation trail,
 - `main.py`: The main script for running the application.
 - `setup_universal_robot.json`: A JSON file containing the setup details for each Universal Robot.
 - `robot.py`: The file contains the `UniversalRobot` class.
+- `path.py`: The file contains the `Path` class.
 - `robot_handler.py`: The file contains the `RobotHandler` class.
 - `utility.py`: The file contains utility functions like `load_json_file`.
 
@@ -45,4 +46,4 @@ This project is designed to work with Universal Robots. If you're working with a
 This script is designed to run continuously until stopped manually. If you want to run it for a specific amount of time or until a specific condition is met, you'll need to modify the `while` loop in the `if __name__ == '__main__':` section.
 
 ## Contact Information
-For further queries or if you encounter any issues, please contact [Your Name] at [Your Email].
+For further queries or if you encounter any issues, please contact `Edy Mariano` at `edy.mariano@epfl.ch`.
