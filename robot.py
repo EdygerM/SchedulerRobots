@@ -30,7 +30,6 @@ class UniversalRobot(Robot):
     def start_server(self):
         """
         Start a server that listens for incoming connections in a separate thread.
-        Non-blocking mode is used, i.e., the server does not block waiting for connections.
         """
 
         # server_func: Internal function to handle the server functionality
@@ -41,7 +40,7 @@ class UniversalRobot(Robot):
                 self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.server_socket.bind((self.host, self.port))
                 self.server_socket.listen()
-                self.server_socket.setblocking(False)  # Set the socket to non-blocking mode
+                self.server_socket.settimeout(1.0)  # Set a timeout of 1 second for the accept call
                 self.is_server_running = True
                 while self.is_server_running and self.server_socket is not None:
                     try:
@@ -50,17 +49,9 @@ class UniversalRobot(Robot):
                             self.connection, addr = self.server_socket.accept()
                             logging.info(f'Connected by {addr} on {self.host}:{self.port} for {self.name}.')
                             self.connection_event.set()  # Signal that a connection has been made
-                        else:
-                            time.sleep(1)
-                    except socket.error as e:
-                        # Ignore the typical errors when no connection is made, and sleep before trying again
-                        if platform.system() == 'Linux':
-                            if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
-                                raise
-                        elif platform.system() == 'Windows':
-                            if e.errno != errno.WSAEWOULDBLOCK and e.errno != errno.WSAECONNABORTED:
-                                raise
-                        time.sleep(1)
+                    except socket.timeout:
+                        # If no client connected within the timeout period, just continue and try again
+                        continue
                     except Exception as e:
                         logging.error(f"An unexpected error occurred: {str(e)}")
             finally:
@@ -91,13 +82,17 @@ class UniversalRobot(Robot):
 
         try:
             logging.info(f"Attempting to send task '{task}' to {self.name}.")
+            # Wait for the client to connect before sending the task
+            while self.connection is None or self.is_client_disconnected():
+                logging.info(f"Waiting for the client to connect to send task '{task}' to {self.name}.")
+                time.sleep(1)  # Wait for a second before checking again
             # Send the task as an encoded string to the server
             self.connection.sendall(task.encode())
             logging.info(f"Task '{task}' sent to {self.name}.")
         except Exception as e:
             logging.error(f"An error occurred while sending task '{task}' to {self.name}: {str(e)}")
 
-    def wait_task_end(self):
+    def wait_task_end(self, task):
         """
         Waits for the task to end. This is simulated by waiting for a message from the server.
         """
@@ -117,37 +112,15 @@ class UniversalRobot(Robot):
         Wait for a connection to the server. This function blocks until a connection is established.
         """
 
-        while not self.is_connected() and not self.stop_flag:
+        while self.is_client_disconnected() and not self.stop_flag:
             time.sleep(1)
             logging.info(f"Waiting for connection to {self.name}")
 
-    def is_connected(self):
-        """
-        Checks if the robot is currently connected to a client.
-        """
-
-        if self.connection is None:
-            return False
-        try:
-            # Try to send an empty message to check the connection
-            if platform.system() == 'Linux':
-                self.connection.send(b'', socket.MSG_DONTWAIT)
-            elif platform.system() == 'Windows':
-                self.connection.setblocking(False)
-                try:
-                    self.connection.send(b'')
-                finally:
-                    self.connection.setblocking(True)
-            return True
-        except socket.error as e:
-            # Broken pipe or connection reset errors mean the client has disconnected
-            if e.errno in [errno.EPIPE, errno.ECONNRESET, errno.WSAECONNRESET, errno.WSAESHUTDOWN]:
-                return False
-            else:
-                raise
-
     # Helper function to check if the client is disconnected
     def is_client_disconnected(self):
+        if self.connection is None:
+            return True
+
         try:
             # Try to receive data, with the MSG_PEEK flag to not consume any data from the buffer
             data = self.connection.recv(1024, socket.MSG_PEEK)
