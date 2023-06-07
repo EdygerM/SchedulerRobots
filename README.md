@@ -26,12 +26,6 @@ The project uses logging to provide a transparent and trackable operation trail,
 3. The script will continue to run, logging any changes in the monitored directory and any resulting actions on the Universal Robots.
 4. Stop the script with a KeyboardInterrupt (usually Ctrl+C in the terminal), and the script will log the stop of all tasks, the stop of all servers, and the stop of the observer before logging the end of the script.
 
-## Function Overview
-- `setup_universal_robots()`: This function initializes instances of Universal Robots based on the details provided in the setup file and starts their servers. Each robot's details are logged as they are initiated and started.
-- `stop_tasks(handler)`: This function stops all tasks handled by the given robot handler.
-- `stop_servers(ur_dict)`: This function stops all Universal Robot servers.
-- `stop_observer(observer)`: This function stops the observer instance which monitors the file system.
-
 ## Project Structure
 - `main.py`: The main script for running the application.
 - `setup_universal_robot.json`: A JSON file containing the setup details for each Universal Robot.
