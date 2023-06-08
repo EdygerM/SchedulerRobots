@@ -1,4 +1,4 @@
-from robot import MobileRobot, UniversalRobot
+from edy_mobile_robot import EdyMobile
 import logging
 
 
@@ -13,7 +13,7 @@ class Path:
         self.Action = Action
         self.PlateNumber = PlateNumber
         self.handler = handler
-        self.EM = MobileRobot("EM")  # Mobile robot
+        self.EM = EdyMobile("EM")
         self.robots_dict = robots_dict
         self.task_queue = task_queue or self.initialize_task_queue()
         self.stop_thread = False

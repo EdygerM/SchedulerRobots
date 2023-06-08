@@ -2,7 +2,7 @@ import threading
 import json
 from watchdog.events import PatternMatchingEventHandler
 from path import Path
-from robot import MobileRobot
+from edy_mobile_robot import EdyMobile
 import logging
 
 
@@ -71,7 +71,7 @@ class RobotHandler(PatternMatchingEventHandler):
                     task_queue = []
                     for robot_name, task, state in path['TaskQueue']:
                         if 'EM' in robot_name:
-                            robot = MobileRobot(robot_name)
+                            robot = EdyMobile(robot_name)
                         else:
                             robot = self.ur_dict[robot_name]
                         task_queue.append((robot, task, state))

@@ -1,7 +1,7 @@
 import time
 from watchdog.observers import Observer
-from robot import UniversalRobot
 from robot_handler import RobotHandler
+from universal_robot import UniversalRobot
 import logging
 from utility import load_json_file
 
