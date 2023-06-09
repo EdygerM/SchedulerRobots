@@ -24,8 +24,8 @@ class EdyMobile:
         """
 
         try:
-            logging.info(f"Waiting task '{task}' ending from {self.name}.")
+            logging.info(f"Waiting task ending from {self.name}.")
             time.sleep(1)  # Simulate the time it takes for a task to end
-            logging.info(f"Task '{task}' ended from {self.name}.")
+            logging.info(f"Task ended from {self.name}.")
         except Exception as e:
-            logging.error(f"An error occurred while waiting for the task '{task}' to end from {self.name}: {str(e)}")
+            logging.error(f"An error occurred while waiting for the task to end from {self.name}: {str(e)}")

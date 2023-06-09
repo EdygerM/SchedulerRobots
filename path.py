@@ -45,7 +45,7 @@ class Path:
             elif state == "IsDoing":
                 if robot.name[:2] == "UR":
                     robot.wait_for_connection()
-                robot.wait_task_end(task)
+                robot.wait_task_end()
                 self.task_queue.pop(0)
                 self.handler.save_state()
         if not self.task_queue:

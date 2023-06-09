@@ -5,5 +5,5 @@
     {"name": "UR_Omni", "host": "172.31.0.14", "port": 7994},
     {"name": "UR_Hplc", "host": "172.31.0.14", "port": 7995},
     {"name": "UR_SfcIq", "host": "172.31.0.14", "port": 7996},
-    {"name": "UR_Synth", "host": "172.31.0.14", "port": 7997},
+    {"name": "UR_Synth", "host": "172.31.0.14", "port": 7997}
 ]

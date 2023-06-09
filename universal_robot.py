@@ -3,9 +3,7 @@ from socket_server import SocketServer
 
 class UniversalRobot(SocketServer):
     def __init__(self, name, host, port):
-        super().__init__(name)
-        super().__init__(host)
-        super().__init__(port)
+        super().__init__(name, host, port)
 
     def send_task(self, task):
         """

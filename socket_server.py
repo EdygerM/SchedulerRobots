@@ -114,16 +114,23 @@ class SocketServer:
     # Helper function to check if the client is disconnected
     def is_client_disconnected(self):
         if self.connection is None:
+            logging.info(f"No connection object for {self.name}.")
             return True
 
         try:
-            # Try to receive data, with the MSG_PEEK flag to not consume any data from the buffer
-            data = self.connection.recv(1024, socket.MSG_PEEK)
-        except ConnectionResetError:
-            # The client has disconnected
-            return True
-        except BlockingIOError:
-            # The socket is still connected and has no data to receive
+            # Set the socket to non-blocking
+            self.connection.setblocking(0)
+
+            # Make a zero-byte send call
+            self.connection.send(b'')
+
+            # If we've gotten here, then the send call didn't raise an error,
+            # so the socket is still connected
             return False
-        # If no exception was raised, check if the client has closed the connection
-        return len(data) == 0
+        except BlockingIOError:
+            # This error means the operation would have blocked if the socket was blocking,
+            # which in turn means that the socket is still connected
+            return False
+        except Exception:
+            # If any other exception was raised, then the socket is probably disconnected
+            return True
