@@ -8,7 +8,7 @@ def load_config():
     """Load and return the configuration."""
     # Read the configuration file
     config = configparser.RawConfigParser()
-    config.read('config.ini')
+    config.read('../config/config.ini')
     return config
 
 
