@@ -1,9 +1,8 @@
 import threading
 import json
 from watchdog.events import PatternMatchingEventHandler
-from path import Path
-from edy_mobile_robot import EdyMobile
-import logging
+from src.path import Path
+from src.edy_mobile_robot import EdyMobile
 
 
 # Class for a handler that handles file system events and maintains a list of paths
@@ -55,7 +54,7 @@ class RobotHandler(PatternMatchingEventHandler):
         Save the current state to a file.
         """
 
-        with open('state.json', 'w') as f:
+        with open('../config/state.json', 'w') as f:
             paths_to_save = [p for p in self.path_list if p.task_queue]
             json.dump([p.to_dict() for p in paths_to_save], f, indent=4)
 
@@ -65,7 +64,7 @@ class RobotHandler(PatternMatchingEventHandler):
         """
 
         try:
-            with open('state.json', 'r') as file:
+            with open('../config/state.json', 'r') as file:
                 data = json.load(file)
                 for path in data:
                     task_queue = []

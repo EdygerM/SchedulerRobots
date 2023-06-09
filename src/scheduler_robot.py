@@ -1,6 +1,6 @@
 import logging
 from watchdog.observers import Observer
-from robot_handler import RobotHandler
+from src.robot_handler import RobotHandler
 from universal_robot import UniversalRobot
 from utility import load_json_file
 

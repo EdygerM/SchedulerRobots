@@ -1,4 +1,4 @@
-from socket_server import SocketServer
+from src.socket_server import SocketServer
 
 
 class UniversalRobot(SocketServer):

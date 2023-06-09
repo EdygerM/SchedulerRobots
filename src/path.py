@@ -1,5 +1,4 @@
-from edy_mobile_robot import EdyMobile
-import logging
+from src.edy_mobile_robot import EdyMobile
 
 
 # Class for a Path that has a series of tasks that can be executed by the robots
