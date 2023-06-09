@@ -28,7 +28,11 @@ class SocketServer:
                 logging.info(f"Attempting to start server on {self.host}:{self.port} for {self.name}.")
                 # Create a server socket, bind it, and set it to listen
                 self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.server_socket.bind((self.host, self.port))
+                try:
+                    self.server_socket.bind((self.host, self.port))
+                except OSError as e:
+                    logging.error(f"An error occurred while binding the server socket: {str(e)}")
+                    raise e
                 self.server_socket.listen()
                 self.server_socket.settimeout(1.0)  # Set a timeout of 1 second for the accept call
                 self.is_server_running = True
