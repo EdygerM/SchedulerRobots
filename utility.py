@@ -1,6 +1,25 @@
+import configparser
 import logging
 import json
 import sys
+
+
+def load_config():
+    """Load and return the configuration."""
+    # Read the configuration file
+    config = configparser.RawConfigParser()
+    config.read('config.ini')
+    return config
+
+
+def setup_logging(config):
+    """Set up logging based on the configuration."""
+    logging.basicConfig(
+        level=getattr(logging, config.get('LOGGING', 'LOG_LEVEL')),
+        format=config.get('LOGGING', 'LOG_FORMAT'),
+        filename=config.get('LOGGING', 'LOG_FILE'),
+        filemode=config.get('LOGGING', 'LOG_MODE')
+    )
 
 
 def load_json_file(file_name):
