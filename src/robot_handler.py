@@ -2,7 +2,10 @@ import threading
 import json
 from watchdog.events import PatternMatchingEventHandler
 from src.path import Path
+from universal_robot import UniversalRobot
+from utility import load_json_file
 from src.edy_mobile_robot import EdyMobile
+import logging
 from config import Config
 
 config = Config()
@@ -12,11 +15,31 @@ config = Config()
 class TaskHandler(PatternMatchingEventHandler):
     patterns = ["*.json"]
 
-    def __init__(self, ur_robots):
+    def __init__(self):
         super().__init__()
-        self.ur_robots = ur_robots
+        self.ur_robots = {}
+        self.setup_universal_robots()
         self.path_list = []
         self.load_state()
+
+    def setup_universal_robots(self):
+        """
+        Set up UniversalRobot instances.
+        Reads the setup file, creates UniversalRobot instances, and starts servers for each of them.
+        """
+        for info in load_json_file(config.get('GENERAL', 'UR_SETUP_FILE')):
+            try:
+                logging.info(f"Creating UniversalRobot instance for {info['name']} with host {info['host']}"
+                             f" and port {info['port']}.")
+                ur = UniversalRobot(info["name"], info["host"], info["port"])
+                self.ur_robots[info["name"]] = ur
+
+                logging.info(f"Starting server for {info['name']}.")
+                ur.start_server()
+                logging.info(f"Server for {info['name']} started successfully.")
+
+            except Exception as e:
+                logging.error(f"An error occurred while setting up {info['name']}: {str(e)}")
 
     def load_state(self):
         """
@@ -85,10 +108,33 @@ class TaskHandler(PatternMatchingEventHandler):
             paths_to_save = [p for p in self.path_list if p.task_queue]
             json.dump([p.to_dict() for p in paths_to_save], f, indent=4)
 
-    def stop_all_tasks(self):
+    def stop(self):
         """
-        Stop executing all tasks.
+        Stops all the servers and the tasks.
         """
+        self.stop_servers()
+        self.stop_tasks()
 
+    def stop_servers(self):
+        """
+        Attempt to stop all servers associated with each UniversalRobot instance.
+        """
+        logging.info("Attempting to stop all servers.")
+        for UR in self.ur_robots.values():
+            try:
+                UR.stop_server()
+                logging.info(f"Server for {UR.name} stopped successfully.")
+            except Exception as e:
+                logging.error(f"An error occurred while stopping server for {UR.name}: {str(e)}")
+
+    def stop_tasks(self):
+        """
+        Attempt to stop all tasks associated with each path in the TaskHandler.
+        """
+        logging.info("Attempting to stop all tasks.")
         for path in self.path_list:
-            path.stop_tasks()
+            try:
+                path.stop_tasks()
+                logging.info(f"Stopped tasks for path {path}")
+            except Exception as e:
+                logging.error(f"An error occurred while stopping tasks for path {path}: {str(e)}")

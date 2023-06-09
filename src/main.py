@@ -15,6 +15,6 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         logging.exception("Interrupt received!")
     finally:
-        scheduler.stop_all()
+        scheduler.stop()
         time.sleep(1)
         logging.info("Main loop stopped.")

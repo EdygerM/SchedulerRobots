@@ -6,7 +6,16 @@ import logging
 
 
 class SocketServer:
+    """
+    The SocketServer class is a basic TCP socket server implementation.
+    It's capable of accepting connections, sending and receiving data from clients.
+    """
+
     def __init__(self, name, host, port):
+        """
+        Start the server.
+        This function runs in a separate thread and listens for incoming connections from clients.
+        """
         self.name = name
         self.host = host
         self.port = port
@@ -19,7 +28,8 @@ class SocketServer:
 
     def start_server(self):
         """
-        Start a server that listens for incoming connections in a separate thread.
+        Start the server.
+        This function runs in a separate thread and listens for incoming connections from clients.
         """
 
         # server_func: Internal function to handle the server functionality
@@ -66,6 +76,10 @@ class SocketServer:
         logging.info(f"Server started on {self.host}:{self.port} for {self.name}.")
 
     def stop_server(self):
+        """
+        Stop the server.
+        This function closes the connection and stops the server from accepting new connections.
+        """
         self.stop_flag = True
         self.is_server_running = False
         if self.connection is not None:
@@ -78,8 +92,9 @@ class SocketServer:
 
     def send_data(self, data):
         """
+        Send data to the connected client.
+        This function blocks until the data is sent.
         """
-
         try:
             logging.info(f"Attempting to send message '{data}' to {self.name}.")
             # Wait for the client to connect before sending the task
@@ -94,8 +109,9 @@ class SocketServer:
 
     def wait_data(self):
         """
+        Wait to receive data from the connected client.
+        This function blocks until data is received.
         """
-
         while True:
             try:
                 data = self.connection.recv(1024)
@@ -108,15 +124,18 @@ class SocketServer:
 
     def wait_for_connection(self):
         """
-        Wait for a connection to the server. This function blocks until a connection is established.
+        Wait until a client is connected to the server.
+        This function blocks until a connection is established.
         """
-
         while self.is_client_disconnected() and not self.stop_flag:
             time.sleep(1)
             logging.info(f"Waiting for connection to {self.name}")
 
-    # Helper function to check if the client is disconnected
     def is_client_disconnected(self):
+        """
+        Check if the client is disconnected.
+        This function checks the status of the connection to the client.
+        """
         if self.connection is None:
             logging.info(f"No connection object for {self.name}.")
             return True
