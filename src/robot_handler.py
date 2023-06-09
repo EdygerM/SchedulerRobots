@@ -3,17 +3,44 @@ import json
 from watchdog.events import PatternMatchingEventHandler
 from src.path import Path
 from src.edy_mobile_robot import EdyMobile
+from config import Config
+
+config = Config()
 
 
 # Class for a handler that handles file system events and maintains a list of paths
-class RobotHandler(PatternMatchingEventHandler):
+class TaskHandler(PatternMatchingEventHandler):
     patterns = ["*.json"]
 
-    def __init__(self, ur_dict):
+    def __init__(self, ur_robots):
         super().__init__()
+        self.ur_robots = ur_robots
         self.path_list = []
-        self.ur_dict = ur_dict
         self.load_state()
+
+    def load_state(self):
+        """
+        Load state from a file.
+        """
+
+        try:
+            with open(config.get('GENERAL', 'STATE_FILE'), 'r') as file:
+                data = json.load(file)
+                for path in data:
+                    task_queue = []
+                    for robot_name, task, state in path['TaskQueue']:
+                        if 'EM' in robot_name:
+                            robot = EdyMobile(robot_name)
+                        else:
+                            robot = self.ur_robots[robot_name]
+                        task_queue.append((robot, task, state))
+                    path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
+                                    path['EndPosition'], path['Action'], path['PlateNumber'], self, self.ur_robots,
+                                    task_queue)
+                    self.path_list.append(path_obj)
+                    threading.Thread(target=path_obj.execute_tasks).start()
+        except FileNotFoundError:
+            pass
 
     def process(self, event):
         """
@@ -24,7 +51,7 @@ class RobotHandler(PatternMatchingEventHandler):
             data = json.load(file)
             for path in data['paths']:
                 path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
-                                path['EndPosition'], path['Action'], path['PlateNumber'], self, self.ur_dict)
+                                path['EndPosition'], path['Action'], path['PlateNumber'], self, self.ur_robots)
                 self.path_list.append(path_obj)
                 threading.Thread(target=path_obj.execute_tasks).start()
 
@@ -54,33 +81,9 @@ class RobotHandler(PatternMatchingEventHandler):
         Save the current state to a file.
         """
 
-        with open('../config/state.json', 'w') as f:
+        with open(config.get('GENERAL', 'STATE_FILE'), 'w') as f:
             paths_to_save = [p for p in self.path_list if p.task_queue]
             json.dump([p.to_dict() for p in paths_to_save], f, indent=4)
-
-    def load_state(self):
-        """
-        Load state from a file.
-        """
-
-        try:
-            with open('../config/state.json', 'r') as file:
-                data = json.load(file)
-                for path in data:
-                    task_queue = []
-                    for robot_name, task, state in path['TaskQueue']:
-                        if 'EM' in robot_name:
-                            robot = EdyMobile(robot_name)
-                        else:
-                            robot = self.ur_dict[robot_name]
-                        task_queue.append((robot, task, state))
-                    path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
-                                    path['EndPosition'], path['Action'], path['PlateNumber'], self, self.ur_dict,
-                                    task_queue)
-                    self.path_list.append(path_obj)
-                    threading.Thread(target=path_obj.execute_tasks).start()
-        except FileNotFoundError:
-            pass
 
     def stop_all_tasks(self):
         """

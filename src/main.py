@@ -1,13 +1,12 @@
 import time
 import logging
-from utility import load_config, setup_logging
+from utility import setup_logging
 from scheduler_robot import SchedulerRobot
 
 
 if __name__ == '__main__':
-    config = load_config()
-    setup_logging(config)
-    scheduler = SchedulerRobot(config.get('GENERAL', 'UR_SETUP_FILE'), config.get('GENERAL', 'INPUT_PATH'))
+    setup_logging()
+    scheduler = SchedulerRobot()
 
     try:
         logging.info("Starting main loop.")

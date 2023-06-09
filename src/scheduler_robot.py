@@ -1,17 +1,20 @@
 import logging
 from watchdog.observers import Observer
-from src.robot_handler import RobotHandler
+from src.robot_handler import TaskHandler
 from universal_robot import UniversalRobot
 from utility import load_json_file
+from config import Config
+
+config = Config()
 
 
 class SchedulerRobot:
-    def __init__(self, ur_setup_file, input_path):
+    def __init__(self):
         self.ur_robots = {}
-        self.setup_universal_robots(ur_setup_file)
-        self.handler = RobotHandler(self.ur_robots)
+        self.setup_universal_robots(config.get('GENERAL', 'UR_SETUP_FILE'))
+        self.handler = TaskHandler(self.ur_robots)
         self.observer = Observer()
-        self.observer.schedule(self.handler, input_path, recursive=False)
+        self.observer.schedule(self.handler, config.get('GENERAL', 'INPUT_PATH'), recursive=False)
         self.observer.start()
 
     def setup_universal_robots(self, ur_setup_file):
