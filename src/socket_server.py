@@ -31,49 +31,48 @@ class SocketServer:
         Start the server.
         This function runs in a separate thread and listens for incoming connections from clients.
         """
-
-        # server_func: Internal function to handle the server functionality
-        def server_func():
-            try:
-                logging.info(f"Attempting to start server on {self.host}:{self.port} for {self.name}.")
-                # Create a server socket, bind it, and set it to listen
-                self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                try:
-                    self.server_socket.bind((self.host, self.port))
-                except OSError as e:
-                    logging.error(f"An error occurred while binding the server socket: {str(e)}")
-                    raise e
-                self.server_socket.listen()
-                self.server_socket.settimeout(1.0)  # Set a timeout of 1 second for the accept call
-                self.is_server_running = True
-                disconnected_logged = False
-                while self.is_server_running and self.server_socket is not None:
-                    try:
-                        # Check if there is no connection or the current connection is closed
-                        if self.connection is None or self.is_client_disconnected():
-                            if not disconnected_logged:
-                                logging.info(f"Client of {self.name} has closed the connection.")
-                                disconnected_logged = True
-                            self.connection, addr = self.server_socket.accept()
-                            logging.info(f'Connected by {addr} on {self.host}:{self.port} for {self.name}.')
-                            self.connection_event.set()  # Signal that a connection has been made
-                            disconnected_logged = False
-                    except socket.timeout:
-                        # If no client connected within the timeout period, just continue and try again
-                        continue
-                    except Exception as e:
-                        logging.error(f"An unexpected error occurred: {str(e)}")
-            finally:
-                # Close the server socket and connection when the server stops
-                if self.server_socket is not None:
-                    self.server_socket.close()
-                    self.server_socket = None
-                logging.info("Server function exited.")
-
         # Start a thread for the server function
-        server_thread = threading.Thread(target=server_func)
+        server_thread = threading.Thread(target=self.server_func)
         server_thread.start()
         logging.info(f"Server started on {self.host}:{self.port} for {self.name}.")
+
+        # server_func: Internal function to handle the server functionality
+    def server_func(self):
+        try:
+            logging.info(f"Attempting to start server on {self.host}:{self.port} for {self.name}.")
+            # Create a server socket, bind it, and set it to listen
+            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                self.server_socket.bind((self.host, self.port))
+            except OSError as e:
+                logging.error(f"An error occurred while binding the server socket: {str(e)}")
+                raise e
+            self.server_socket.listen()
+            self.server_socket.settimeout(1.0)  # Set a timeout of 1 second for the accept call
+            self.is_server_running = True
+            disconnected_logged = False
+            while self.is_server_running and self.server_socket is not None:
+                try:
+                    # Check if there is no connection or the current connection is closed
+                    if self.connection is None or self.is_client_disconnected():
+                        if not disconnected_logged:
+                            logging.info(f"Client of {self.name} has closed the connection.")
+                            disconnected_logged = True
+                        self.connection, addr = self.server_socket.accept()
+                        logging.info(f'Connected by {addr} on {self.host}:{self.port} for {self.name}.')
+                        self.connection_event.set()  # Signal that a connection has been made
+                        disconnected_logged = False
+                except socket.timeout:
+                    # If no client connected within the timeout period, just continue and try again
+                    continue
+                except Exception as e:
+                    logging.error(f"An unexpected error occurred: {str(e)}")
+        finally:
+            # Close the server socket and connection when the server stops
+            if self.server_socket is not None:
+                self.server_socket.close()
+                self.server_socket = None
+            logging.info("Server function exited.")
 
     def stop_server(self):
         """

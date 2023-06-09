@@ -1,12 +1,11 @@
+import logging
 import threading
-import json
+from config import Config
+from utility import load_json_file
 from watchdog.events import PatternMatchingEventHandler
 from src.path import Path
 from universal_robot import UniversalRobot
-from utility import load_json_file
 from src.edy_mobile_robot import EdyMobile
-import logging
-from config import Config
 
 config = Config()
 
@@ -18,8 +17,8 @@ class TaskHandler(PatternMatchingEventHandler):
     def __init__(self):
         super().__init__()
         self.ur_robots = {}
-        self.setup_universal_robots()
         self.path_list = []
+        self.setup_universal_robots()
         self.load_state()
 
     def setup_universal_robots(self):
@@ -47,21 +46,20 @@ class TaskHandler(PatternMatchingEventHandler):
         """
 
         try:
-            with open(config.get('GENERAL', 'STATE_FILE'), 'r') as file:
-                data = json.load(file)
-                for path in data:
-                    task_queue = []
-                    for robot_name, task, state in path['TaskQueue']:
-                        if 'EM' in robot_name:
-                            robot = EdyMobile(robot_name)
-                        else:
-                            robot = self.ur_robots[robot_name]
-                        task_queue.append((robot, task, state))
-                    path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
-                                    path['EndPosition'], path['Action'], path['PlateNumber'], self, self.ur_robots,
-                                    task_queue)
-                    self.path_list.append(path_obj)
-                    threading.Thread(target=path_obj.execute_tasks).start()
+            data = load_json_file(config.get('GENERAL', 'STATE_FILE'))
+            for path in data:
+                task_queue = []
+                for robot_name, task, state in path['TaskQueue']:
+                    if 'EM' in robot_name:
+                        robot = EdyMobile(robot_name)
+                    else:
+                        robot = self.ur_robots[robot_name]
+                    task_queue.append((robot, task, state))
+                path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
+                                path['EndPosition'], path['Action'], path['PlateNumber'], self, self.ur_robots,
+                                task_queue)
+                self.path_list.append(path_obj)
+                threading.Thread(target=path_obj.execute_tasks).start()
         except FileNotFoundError:
             pass
 
@@ -70,13 +68,12 @@ class TaskHandler(PatternMatchingEventHandler):
         Process a new json file, create a new Path object and start executing its tasks.
         """
 
-        with open(event.src_path, 'r') as file:
-            data = json.load(file)
-            for path in data['paths']:
-                path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
-                                path['EndPosition'], path['Action'], path['PlateNumber'], self, self.ur_robots)
-                self.path_list.append(path_obj)
-                threading.Thread(target=path_obj.execute_tasks).start()
+        data = load_json_file(config.get('GENERAL', 'STATE_FILE'))
+        for path in data['paths']:
+            path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
+                            path['EndPosition'], path['Action'], path['PlateNumber'], self, self.ur_robots)
+            self.path_list.append(path_obj)
+            threading.Thread(target=path_obj.execute_tasks).start()
 
     def print_all_names(self):
         """
