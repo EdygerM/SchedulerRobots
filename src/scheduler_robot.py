@@ -1,7 +1,8 @@
 import logging
-from watchdog.observers import Observer
-from robot_handler import TaskHandler
 from config import Config
+from task_handler import TaskHandler
+from watchdog.observers import Observer
+
 
 config = Config()
 
