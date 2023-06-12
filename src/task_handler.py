@@ -12,11 +12,13 @@ config = Config()
 
 # Class for a handler that handles file system events and maintains a list of paths
 class TaskHandler(PatternMatchingEventHandler):
+    """
+    """
     patterns = ["*.json"]
 
     def __init__(self):
         super().__init__()
-        self.ur_robots = {}
+        self.universal_robots = {}
         self.path_list = []
         self.setup_universal_robots()
         self.load_state()
@@ -28,14 +30,12 @@ class TaskHandler(PatternMatchingEventHandler):
         """
         for info in load_json_file(config.get('GENERAL', 'UR_SETUP_FILE')):
             try:
-                logging.info(f"Creating UniversalRobot instance for {info['name']} with host {info['host']}"
-                             f" and port {info['port']}.")
-                ur = UniversalRobot(info["name"], info["host"], info["port"])
-                self.ur_robots[info["name"]] = ur
+                logging.info(f"Creating UniversalRobot instance for {info['name']} "
+                             f"with host {info['host']} "
+                             f"and port {info['port']}.")
 
-                logging.info(f"Starting server for {info['name']}.")
-                ur.start_server()
-                logging.info(f"Server for {info['name']} started successfully.")
+                self.universal_robots[info["name"]] = UniversalRobot(info["name"], info["host"], info["port"])
+                self.universal_robots[info["name"]].start_server()
 
             except Exception as e:
                 logging.error(f"An error occurred while setting up {info['name']}: {str(e)}")
@@ -44,24 +44,42 @@ class TaskHandler(PatternMatchingEventHandler):
         """
         Load state from a file.
         """
-
         try:
-            data = load_json_file(config.get('GENERAL', 'STATE_FILE'))
+            data = self.load_state_file()
             for path in data:
-                task_queue = []
-                for robot_name, task, state in path['TaskQueue']:
-                    if 'EM' in robot_name:
-                        robot = EdyMobile(robot_name)
-                    else:
-                        robot = self.ur_robots[robot_name]
-                    task_queue.append((robot, task, state))
-                path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
-                                path['EndPosition'], path['Action'], path['PlateNumber'], self, self.ur_robots,
-                                task_queue)
-                self.path_list.append(path_obj)
-                threading.Thread(target=path_obj.execute_tasks).start()
+                task_queue = self.create_task_queue(path['TaskQueue'])
+                self.create_and_start_path(path, task_queue)
         except FileNotFoundError:
             pass
+
+    def load_state_file(self):
+        """
+        Load data from the state file.
+        """
+        return load_json_file(config.get('GENERAL', 'STATE_FILE'))
+
+    def create_task_queue(self, task_queue_data):
+        """
+        Create the task queue for each path.
+        """
+        task_queue = []
+        for robot_name, task, state in task_queue_data:
+            if 'EM' in robot_name:
+                robot = EdyMobile(robot_name)
+            else:
+                robot = self.universal_robots[robot_name]
+            task_queue.append((robot, task, state))
+        return task_queue
+
+    def create_and_start_path(self, path_data, task_queue):
+        """
+        Handle the creation and start of the Path object.
+        """
+        path_obj = Path(path_data['ID'], path_data['Name'], path_data['StartPosition'],
+                        path_data['EndPosition'], path_data['Action'], path_data['PlateNumber'], self,
+                        self.universal_robots, task_queue)
+        self.path_list.append(path_obj)
+        threading.Thread(target=path_obj.execute_tasks).start()
 
     def process(self, event):
         """
@@ -71,7 +89,7 @@ class TaskHandler(PatternMatchingEventHandler):
         data = load_json_file(config.get('GENERAL', 'STATE_FILE'))
         for path in data['paths']:
             path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
-                            path['EndPosition'], path['Action'], path['PlateNumber'], self, self.ur_robots)
+                            path['EndPosition'], path['Action'], path['PlateNumber'], self, self.universal_robots)
             self.path_list.append(path_obj)
             threading.Thread(target=path_obj.execute_tasks).start()
 
@@ -117,7 +135,7 @@ class TaskHandler(PatternMatchingEventHandler):
         Attempt to stop all servers associated with each UniversalRobot instance.
         """
         logging.info("Attempting to stop all servers.")
-        for UR in self.ur_robots.values():
+        for UR in self.universal_robots.values():
             try:
                 UR.stop_server()
                 logging.info(f"Server for {UR.name} stopped successfully.")

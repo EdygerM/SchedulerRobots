@@ -3,7 +3,6 @@ from config import Config
 from task_handler import TaskHandler
 from watchdog.observers import Observer
 
-
 config = Config()
 
 
@@ -11,7 +10,6 @@ class SchedulerRobot:
     """
     The SchedulerRobot class is responsible for managing tasks and observing changes in a given input path.
     """
-
     def __init__(self):
         """
         Initialize the TaskHandler for task management and the Observer for monitoring the changes in the input path.
