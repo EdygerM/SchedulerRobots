@@ -2,6 +2,7 @@ import logging
 from tasks_handler import TasksHandler
 from watchdog.observers import Observer
 
+
 class SchedulerRobot:
     """
     Manages tasks and observes changes in a given input path.
@@ -14,6 +15,7 @@ class SchedulerRobot:
         tasksHandler (TasksHandler): Handles tasks.
         inputObserver (Observer): Monitors changes in the input path.
     """
+
     def __init__(self, input_path: str) -> None:
         """
         Initializes a new instance of the SchedulerRobot class.
