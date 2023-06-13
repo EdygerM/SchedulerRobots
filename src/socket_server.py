@@ -32,7 +32,6 @@ class SocketServer:
         This function runs in a separate thread and listens for incoming connections from clients.
         """
         # Start a thread for the server function
-        logging.info(f"Starting server on {self.host}:{self.port} for {self.name}.")
         server_thread = threading.Thread(target=self.server_func)
         server_thread.start()
 

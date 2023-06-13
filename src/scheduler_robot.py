@@ -1,35 +1,42 @@
 import logging
-from config import Config
 from task_handler import TaskHandler
 from watchdog.observers import Observer
-
-config = Config()
 
 
 class SchedulerRobot:
     """
-    The SchedulerRobot class is responsible for managing tasks and observing changes in a given input path.
+    Manages tasks and observes changes in a given input path.
+
+    Attributes:
+        handler (TaskHandler): The object to handle tasks.
+        observer (Observer): The object to monitor changes in the input path.
     """
-    def __init__(self):
+    def __init__(self, input_path: str) -> None:
         """
-        Initialize the TaskHandler for task management and the Observer for monitoring the changes in the input path.
-        The observer is set to start observing as soon as an instance of the class is created.
+        Initializes a new instance of the SchedulerRobot class.
+
+        The TaskHandler and Observer instances are created, and the Observer starts observing the input path
+        specified in the configuration.
         """
         self.handler = TaskHandler()
         self.observer = Observer()
-        self.observer.schedule(self.handler, config.get('GENERAL', 'INPUT_PATH'), recursive=False)
+        self.observer.schedule(self.handler, input_path, recursive=False)
         self.observer.start()
 
-    def stop(self):
+    def stop(self) -> None:
         """
-        Stops the task handling process and the observer.
+        Stops the task handler and the observer.
+
+        This method is generally called when you want to stop task processing and path monitoring.
         """
         self.handler.stop()
         self.stop_observer()
 
-    def stop_observer(self):
+    def stop_observer(self) -> None:
         """
-        Stop the observer that is monitoring the input path.
+        Stops the observer.
+
+        This method stops the observer that is monitoring changes in the input path.
         """
         logging.info("Stopping observer.")
         try:

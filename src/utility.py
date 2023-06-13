@@ -1,6 +1,5 @@
 import logging
 import json
-import sys
 from config import Config
 
 config = Config()
@@ -17,11 +16,12 @@ def setup_logging():
 
 
 def load_json_file(file_name):
-    data = []
     try:
         logging.info(f"Attempting to open and load {file_name}.")
         with open(file_name, 'r') as file:
             data = json.load(file)
+            logging.info(f"Successfully loaded {file_name}.")
+            return data
     except FileNotFoundError:
         logging.error(f"{file_name} file does not exist or could not be opened.")
     except json.JSONDecodeError:
@@ -30,8 +30,6 @@ def load_json_file(file_name):
         logging.error("An unexpected error occurred: " + str(e))
     finally:
         if not data:
-            logging.info(f"Exiting the application due to errors while loading the {file_name}.")
-            sys.exit(1)
+            logging.info(f"No data was loaded from {file_name}.")
 
-    logging.info(f"Successfully loaded {file_name}.")
-    return data
+    return []

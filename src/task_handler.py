@@ -1,3 +1,4 @@
+import json
 import logging
 import threading
 from config import Config
@@ -10,9 +11,9 @@ from src.edy_mobile_robot import EdyMobile
 config = Config()
 
 
-# Class for a handler that handles file system events and maintains a list of paths
 class TaskHandler(PatternMatchingEventHandler):
     """
+    Class for a handler that handles file system events and maintains a list of paths
     """
     patterns = ["*.json"]
 
@@ -20,43 +21,39 @@ class TaskHandler(PatternMatchingEventHandler):
         super().__init__()
         self.universal_robots = {}
         self.path_list = []
-        self.setup_universal_robots()
-        self.load_state()
+        self.universal_robots_setup = None
+        self.state = None
+        self.load_setup_files()
+        self.load_state_file()
+        self.create_and_start_paths_from_state()
+
+    def load_setup_files(self):
+        self.load_universal_robots_setup_file()
+        self.load_state_file()
+
+    def load_state_file(self):
+        self.state = load_json_file(config.get('GENERAL', 'STATE_FILE'))
+
+    def load_universal_robots_setup_file(self):
+        self.universal_robots_setup = load_json_file(config.get('GENERAL', 'UR_SETUP_FILE'))
 
     def setup_universal_robots(self):
         """
-        Set up UniversalRobot instances.
-        Reads the setup file, creates UniversalRobot instances, and starts servers for each of them.
+        Initialize UniversalRobot instances using a configuration file.
+        Configuration file content is loaded and UniversalRobot instances are created.
         """
-        for info in load_json_file(config.get('GENERAL', 'UR_SETUP_FILE')):
-            try:
-                logging.info(f"Creating UniversalRobot instance for {info['name']} "
-                             f"with host {info['host']} "
-                             f"and port {info['port']}.")
+        self.universal_robots = {
+            setup["name"]: UniversalRobot(setup["name"], setup["host"], setup["port"])
+            for setup in self.universal_robots_setup
+        }
 
-                self.universal_robots[info["name"]] = UniversalRobot(info["name"], info["host"], info["port"])
-                self.universal_robots[info["name"]].start_server()
-
-            except Exception as e:
-                logging.error(f"An error occurred while setting up {info['name']}: {str(e)}")
-
-    def load_state(self):
-        """
-        Load state from a file.
-        """
+    def create_and_start_paths_from_state(self):
         try:
-            data = self.load_state_file()
-            for path in data:
+            for path in self.state:
                 task_queue = self.create_task_queue(path['TaskQueue'])
                 self.create_and_start_path(path, task_queue)
         except FileNotFoundError:
             pass
-
-    def load_state_file(self):
-        """
-        Load data from the state file.
-        """
-        return load_json_file(config.get('GENERAL', 'STATE_FILE'))
 
     def create_task_queue(self, task_queue_data):
         """
@@ -72,9 +69,6 @@ class TaskHandler(PatternMatchingEventHandler):
         return task_queue
 
     def create_and_start_path(self, path_data, task_queue):
-        """
-        Handle the creation and start of the Path object.
-        """
         path_obj = Path(path_data['ID'], path_data['Name'], path_data['StartPosition'],
                         path_data['EndPosition'], path_data['Action'], path_data['PlateNumber'], self,
                         self.universal_robots, task_queue)
@@ -124,23 +118,13 @@ class TaskHandler(PatternMatchingEventHandler):
             json.dump([p.to_dict() for p in paths_to_save], f, indent=4)
 
     def stop(self):
-        """
-        Stops all the servers and the tasks.
-        """
         self.stop_servers()
         self.stop_tasks()
 
     def stop_servers(self):
-        """
-        Attempt to stop all servers associated with each UniversalRobot instance.
-        """
         logging.info("Attempting to stop all servers.")
-        for UR in self.universal_robots.values():
-            try:
-                UR.stop_server()
-                logging.info(f"Server for {UR.name} stopped successfully.")
-            except Exception as e:
-                logging.error(f"An error occurred while stopping server for {UR.name}: {str(e)}")
+        for universal_robot in self.universal_robots.values():
+            universal_robot.stop_server()
 
     def stop_tasks(self):
         """
