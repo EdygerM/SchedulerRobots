@@ -11,7 +11,7 @@ from src.edy_mobile_robot import EdyMobile
 config = Config()
 
 
-class TaskHandler(PatternMatchingEventHandler):
+class TasksHandler(PatternMatchingEventHandler):
     """
     Class for a handler that handles file system events and maintains a list of paths
     """
