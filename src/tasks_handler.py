@@ -17,6 +17,7 @@ class TasksHandler(PatternMatchingEventHandler):
     """
     patterns = ["*.json"]
 
+
     def __init__(self):
         super().__init__()
         self.universal_robots_setup = self.load_universal_robots_setup_file()
