@@ -16,12 +16,10 @@ class TasksHandler(PatternMatchingEventHandler):
 
     def __init__(self, universal_robots_setup_file, state_file):
         super().__init__()
-        self.state_file = state_file
-        self.state = load_json_file(state_file)
         self.universal_robots_setup = load_json_file(universal_robots_setup_file)
         self.universal_robots = self.setup_universal_robots()
         self.path_list = []
-        self.create_and_start_paths_from_state()
+        self.create_and_start_paths_from_state(state_file)
 
     def setup_universal_robots(self):
         """
@@ -33,9 +31,10 @@ class TasksHandler(PatternMatchingEventHandler):
             for setup in self.universal_robots_setup
         }
 
-    def create_and_start_paths_from_state(self):
+    def create_and_start_paths_from_state(self, state_file):
         try:
-            for path in self.state:
+            state = load_json_file(state_file)
+            for path in state:
                 task_queue = self.create_task_queue(path['TaskQueue'])
                 self.create_and_start_path(path, task_queue)
         except FileNotFoundError:
@@ -66,11 +65,13 @@ class TasksHandler(PatternMatchingEventHandler):
         Process a new json file, create a new Path object and start executing its tasks.
         """
 
-        for path in self.state['paths']:
-            path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
-                            path['EndPosition'], path['Action'], path['PlateNumber'], self, self.universal_robots)
-            self.path_list.append(path_obj)
-            threading.Thread(target=path_obj.execute_tasks).start()
+        with open(event.src_path, 'r') as file:
+            data = json.load(file)
+            for path in data['paths']:
+                path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
+                                path['EndPosition'], path['Action'], path['PlateNumber'], self, self.universal_robots)
+                self.path_list.append(path_obj)
+                threading.Thread(target=path_obj.execute_tasks).start()
 
     def print_all_names(self):
         """
