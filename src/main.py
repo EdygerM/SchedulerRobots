@@ -1,13 +1,18 @@
 import time
 import logging
-from utility import setup_logging
+from logger import setup_logging
 from scheduler_robot import SchedulerRobot
 from config import Config
 
 config = Config()
 
 if __name__ == '__main__':
-    setup_logging()
+    setup_logging(
+        config.get('LOGGING', 'LOG_LEVEL'),
+        config.get('LOGGING', 'LOG_FORMAT'),
+        config.get('LOGGING', 'LOG_FILE'),
+        config.get('LOGGING', 'LOG_MODE')
+    )
     scheduler = SchedulerRobot(config.get('GENERAL', 'INPUT_PATH'))
 
     try:

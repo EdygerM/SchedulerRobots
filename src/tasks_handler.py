@@ -2,11 +2,11 @@ import json
 import logging
 import threading
 from config import Config
-from utility import load_json_file
+from file_loader import load_json_file
 from watchdog.events import PatternMatchingEventHandler
-from src.path import Path
+from path import Path
 from universal_robot import UniversalRobot
-from src.edy_mobile_robot import EdyMobile
+from edy_mobile_robot import EdyMobile
 
 config = Config()
 
