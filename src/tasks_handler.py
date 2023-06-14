@@ -1,14 +1,11 @@
 import json
 import logging
 import threading
-from config import Config
 from file_loader import load_json_file
 from watchdog.events import PatternMatchingEventHandler
 from path import Path
 from universal_robot import UniversalRobot
 from edy_mobile_robot import EdyMobile
-
-config = Config()
 
 
 class TasksHandler(PatternMatchingEventHandler):
@@ -17,20 +14,14 @@ class TasksHandler(PatternMatchingEventHandler):
     """
     patterns = ["*.json"]
 
-
-    def __init__(self):
+    def __init__(self, universal_robots_setup_file, state_file):
         super().__init__()
-        self.universal_robots_setup = self.load_universal_robots_setup_file()
-        self.state = self.load_state_file()
+        self.state_file = state_file
+        self.state = load_json_file(state_file)
+        self.universal_robots_setup = load_json_file(universal_robots_setup_file)
         self.universal_robots = self.setup_universal_robots()
         self.path_list = []
         self.create_and_start_paths_from_state()
-
-    def load_state_file(self):
-        return load_json_file(config.get('GENERAL', 'STATE_FILE'))
-
-    def load_universal_robots_setup_file(self):
-        return load_json_file(config.get('GENERAL', 'UR_SETUP_FILE'))
 
     def setup_universal_robots(self):
         """
@@ -75,8 +66,7 @@ class TasksHandler(PatternMatchingEventHandler):
         Process a new json file, create a new Path object and start executing its tasks.
         """
 
-        data = load_json_file(config.get('GENERAL', 'STATE_FILE'))
-        for path in data['paths']:
+        for path in self.state['paths']:
             path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
                             path['EndPosition'], path['Action'], path['PlateNumber'], self, self.universal_robots)
             self.path_list.append(path_obj)
@@ -108,7 +98,7 @@ class TasksHandler(PatternMatchingEventHandler):
         Save the current state to a file.
         """
 
-        with open(config.get('GENERAL', 'STATE_FILE'), 'w') as f:
+        with open(self.state_file, 'w') as f:
             paths_to_save = [p for p in self.path_list if p.task_queue]
             json.dump([p.to_dict() for p in paths_to_save], f, indent=4)
 

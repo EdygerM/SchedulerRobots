@@ -26,7 +26,7 @@ class SchedulerRobot:
         Args:
             input_path (str): The path to be monitored by the observer.
         """
-        self.tasksHandler = TasksHandler()
+        self.tasksHandler = TasksHandler(config.get('GENERAL', 'UR_SETUP_FILE'), config.get('GENERAL', 'STATE_FILE'))
         self.inputObserver = Observer()
         self.inputObserver.schedule(self.tasksHandler, input_path, recursive=False)
         self.inputObserver.start()
