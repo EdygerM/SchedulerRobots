@@ -19,30 +19,24 @@ class TasksHandler(PatternMatchingEventHandler):
 
     def __init__(self):
         super().__init__()
-        self.universal_robots = {}
+        self.universal_robots_setup = self.load_universal_robots_setup_file()
+        self.state = self.load_state_file()
+        self.universal_robots = self.setup_universal_robots()
         self.path_list = []
-        self.universal_robots_setup = None
-        self.state = None
-        self.load_setup_files()
-        self.load_state_file()
         self.create_and_start_paths_from_state()
 
-    def load_setup_files(self):
-        self.load_universal_robots_setup_file()
-        self.load_state_file()
-
     def load_state_file(self):
-        self.state = load_json_file(config.get('GENERAL', 'STATE_FILE'))
+        return load_json_file(config.get('GENERAL', 'STATE_FILE'))
 
     def load_universal_robots_setup_file(self):
-        self.universal_robots_setup = load_json_file(config.get('GENERAL', 'UR_SETUP_FILE'))
+        return load_json_file(config.get('GENERAL', 'UR_SETUP_FILE'))
 
     def setup_universal_robots(self):
         """
         Initialize UniversalRobot instances using a configuration file.
         Configuration file content is loaded and UniversalRobot instances are created.
         """
-        self.universal_robots = {
+        return {
             setup["name"]: UniversalRobot(setup["name"], setup["host"], setup["port"])
             for setup in self.universal_robots_setup
         }
