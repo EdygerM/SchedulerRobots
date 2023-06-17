@@ -32,13 +32,10 @@ class TasksHandler(PatternMatchingEventHandler):
         }
 
     def create_and_start_paths_from_state(self, state_file):
-        try:
-            state = load_json_file(state_file)
-            for path in state:
-                task_queue = self.create_task_queue(path['TaskQueue'])
-                self.create_and_start_path(path, task_queue)
-        except FileNotFoundError:
-            pass
+        state = load_json_file(state_file)
+        for path in state:
+            task_queue = self.create_task_queue(path['TaskQueue'])
+            self.create_and_start_path(path, task_queue)
 
     def create_task_queue(self, task_queue_data):
         """
