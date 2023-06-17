@@ -62,13 +62,6 @@ class TasksHandler(PatternMatchingEventHandler):
         """
         Called when a new file is created.
         """
-        self.process(event)
-
-    def process(self, event):
-        """
-        Process a new json file, create a new Path object and start executing its tasks.
-        """
-
         with open(event.src_path, 'r') as input_file:
             path_data = load_json_file(input_file)
             self.create_and_start_path(path_data, None)
