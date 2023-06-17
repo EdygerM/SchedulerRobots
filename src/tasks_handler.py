@@ -5,7 +5,7 @@ from file_loader import load_json_file
 from watchdog.events import PatternMatchingEventHandler
 from path import Path
 from universal_robot import UniversalRobot
-from edy_mobile_robot import EdyMobile
+from fleet_manager import FleetManager
 
 
 class TasksHandler(PatternMatchingEventHandler):
@@ -18,6 +18,7 @@ class TasksHandler(PatternMatchingEventHandler):
         super().__init__()
         self.universal_robots_setup = load_json_file(universal_robots_setup_file)
         self.universal_robots = self.setup_universal_robots()
+        self.fleet_manager = FleetManager()
         self.path_list = []
         self.create_and_start_paths_from_state(state_file)
 
@@ -44,70 +45,49 @@ class TasksHandler(PatternMatchingEventHandler):
         task_queue = []
         for robot_name, task, state in task_queue_data:
             if 'EM' in robot_name:
-                robot = EdyMobile(robot_name)
-            else:
+                robot = self.fleet_manager
+            elif 'UR' in robot_name:
                 robot = self.universal_robots[robot_name]
+            else:
+                robot = None
             task_queue.append((robot, task, state))
         return task_queue
 
     def create_and_start_path(self, path_data, task_queue):
-        path_obj = Path(path_data['ID'], path_data['Name'], path_data['StartPosition'],
-                        path_data['EndPosition'], path_data['Action'], path_data['PlateNumber'], self,
-                        self.universal_robots, task_queue)
-        self.path_list.append(path_obj)
-        threading.Thread(target=path_obj.execute_tasks).start()
+        path = Path(path_data['Name'], path_data['StartPosition'],
+                    path_data['EndPosition'], path_data['Action'], path_data['PlateNumber'], self,
+                    self.universal_robots, task_queue)
+        self.path_list.append(path)
+        threading.Thread(target=path.execute_tasks).start()
+
+    def on_created(self, event):
+        """
+        Called when a new file is created.
+        """
+        self.process(event)
 
     def process(self, event):
         """
         Process a new json file, create a new Path object and start executing its tasks.
         """
 
-        with open(event.src_path, 'r') as file:
-            data = json.load(file)
-            for path in data['paths']:
-                path_obj = Path(path['ID'], path['Name'], path['StartPosition'],
-                                path['EndPosition'], path['Action'], path['PlateNumber'], self, self.universal_robots)
-                self.path_list.append(path_obj)
-                threading.Thread(target=path_obj.execute_tasks).start()
+        with open(event.src_path, 'r') as input_file:
+            path_data = load_json_file(input_file)
+            self.create_and_start_path(path_data, None)
 
-    def print_all_names(self):
-        """
-        Print the names of all path objects. This is useful for debugging.
-        """
-        for path_obj in self.path_list:
-            print(path_obj.Name)
-
-    def on_created(self, event):
-        """
-        Called when a new file is created.
-        """
-
-        self.process(event)
-
-    def remove_path(self, path_obj):
+    def remove_path(self, path):
         """
         Remove a path from the list.
         """
-
-        self.path_list.remove(path_obj)
+        self.path_list.remove(path)
 
     def save_state(self):
         """
         Save the current state to a file.
         """
-
-        with open(self.state_file, 'w') as f:
-            paths_to_save = [p for p in self.path_list if p.task_queue]
-            json.dump([p.to_dict() for p in paths_to_save], f, indent=4)
-
-    def stop(self):
-        self.stop_servers()
-        self.stop_tasks()
-
-    def stop_servers(self):
-        logging.info("Attempting to stop all servers.")
-        for universal_robot in self.universal_robots.values():
-            universal_robot.stop_server()
+        with open(self.state_file, 'w') as file:
+            paths_to_save = [path for path in self.path_list if path.task_queue]
+            json.dump([path.to_dict() for path in paths_to_save], file, indent=4)
 
     def stop_tasks(self):
         """
@@ -117,6 +97,14 @@ class TasksHandler(PatternMatchingEventHandler):
         for path in self.path_list:
             try:
                 path.stop_tasks()
-                logging.info(f"Stopped tasks for path {path}")
             except Exception as e:
-                logging.error(f"An error occurred while stopping tasks for path {path}: {str(e)}")
+                logging.error(f"An error occurred while stopping tasks for path {path}: {e}")
+
+    def stop_servers(self):
+        logging.info("Attempting to stop all servers.")
+        for universal_robot in self.universal_robots.values():
+            universal_robot.stop_server()
+
+    def stop(self):
+        self.stop_tasks()
+        self.stop_servers()
