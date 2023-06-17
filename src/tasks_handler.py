@@ -4,7 +4,7 @@ import threading
 from file_loader import load_json_file
 from watchdog.events import PatternMatchingEventHandler
 from path import Path
-from universal_robot import UniversalRobot
+from universal_robots import UniversalRobots
 from fleet_manager import FleetManager
 
 
@@ -16,20 +16,20 @@ class TasksHandler(PatternMatchingEventHandler):
 
     def __init__(self, universal_robots_setup_file, state_file):
         super().__init__()
-        self.universal_robots_setup = load_json_file(universal_robots_setup_file)
-        self.universal_robots = self.setup_universal_robots()
+        self.universal_robots = self.setup_universal_robots(universal_robots_setup_file)
         self.fleet_manager = FleetManager()
         self.path_list = []
         self.create_and_start_paths_from_state(state_file)
 
-    def setup_universal_robots(self):
+    def setup_universal_robots(self, universal_robots_setup_file):
         """
         Initialize UniversalRobot instances using a configuration file.
         Configuration file content is loaded and UniversalRobot instances are created.
         """
+        universal_robots_setup = load_json_file(universal_robots_setup_file)
         return {
-            setup["name"]: UniversalRobot(setup["name"], setup["host"], setup["port"])
-            for setup in self.universal_robots_setup
+            setup["name"]: UniversalRobots(setup["name"], setup["host"], setup["port"])
+            for setup in universal_robots_setup
         }
 
     def create_and_start_paths_from_state(self, state_file):
@@ -54,9 +54,7 @@ class TasksHandler(PatternMatchingEventHandler):
         return task_queue
 
     def create_and_start_path(self, path_data, task_queue):
-        path = Path(path_data['Name'], path_data['StartPosition'],
-                    path_data['EndPosition'], path_data['Action'], path_data['PlateNumber'], self,
-                    self.universal_robots, task_queue)
+        path = Path(path_data, self, self.universal_robots, task_queue)
         self.path_list.append(path)
         threading.Thread(target=path.execute_tasks).start()
 

@@ -13,7 +13,11 @@ if __name__ == '__main__':
         config.get('LOGGING', 'LOG_FILE'),
         config.get('LOGGING', 'LOG_MODE')
     )
-    scheduler = SchedulerRobot(config.get('GENERAL', 'INPUT_PATH'))
+    scheduler = SchedulerRobot(
+        config.get('GENERAL', 'INPUT_PATH'),
+        config.get('GENERAL', 'UR_SETUP_FILE'),
+        config.get('GENERAL', 'STATE_FILE')
+    )
 
     try:
         logging.info("Starting main loop.")

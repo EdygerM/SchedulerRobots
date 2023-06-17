@@ -1,9 +1,9 @@
 import logging
+from file_loader import load_json_file
+from socket_server import SocketServer
 
-from src.socket_server import SocketServer
 
-
-class UniversalRobot(SocketServer):
+class UniversalRobots(SocketServer):
     def __init__(self, name, host, port):
         logging.info(f"Creating UniversalRobot instance for {name} "
                      f"with host {host} "

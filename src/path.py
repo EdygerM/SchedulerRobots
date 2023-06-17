@@ -1,21 +1,29 @@
 from fleet_manager import FleetManager
+from file_loader import load_json_file
 import logging
 
 
 # Class for a Path that has a series of tasks that can be executed by the robots
 class Path:
-    def __init__(self, Name, start_position, end_position, Action, PlateNumber, handler, robots_dict,
+    def __init__(self, name, start_position, end_position, action, plate_number, handler, robots_dict,
                  task_queue=None):
-        self.Name = Name
+        self.name = name
         self.start_position = start_position
         self.end_position = end_position
-        self.Action = Action
-        self.PlateNumber = PlateNumber
+        self.action = action
+        self.plate_number = plate_number
         self.handler = handler
         self.EM = FleetManager("EM")
         self.robots_dict = robots_dict
         self.task_queue = task_queue or self.initialize_task_queue()
         self.stop_thread = False
+
+    @classmethod
+    def from_config(cls, config_file, handler, universal_robots, task_queue):
+        path_data = load_json_file(config_file)
+        return cls(path_data['Name'], path_data['StartPosition'],
+                   path_data['EndPosition'], path_data['Action'], path_data['PlateNumber'], handler,
+                   universal_robots, task_queue)
 
     def initialize_task_queue(self):
         """
@@ -49,7 +57,7 @@ class Path:
                 self.handler.save_state()
         if not self.task_queue:
             self.handler.remove_path(self)
-            logging.info(f"Stopped tasks for path {self.Name}")
+            logging.info(f"Stopped tasks for path {self.name}")
 
     def stop_tasks(self):
         """
@@ -64,10 +72,10 @@ class Path:
         """
 
         return {
-            "Name": self.Name,
+            "Name": self.name,
             "start_position": self.start_position,
             "end_position": self.end_position,
-            "Action": self.Action,
-            "PlateNumber": self.PlateNumber,
+            "Action": self.action,
+            "PlateNumber": self.plate_number,
             "TaskQueue": [(robot.name, task, state) for robot, task, state in self.task_queue]
         }
