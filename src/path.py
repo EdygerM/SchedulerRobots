@@ -3,7 +3,6 @@ from file_loader import load_json_file
 import logging
 
 
-# Class for a Path that has a series of tasks that can be executed by the robots
 class Path:
     def __init__(self, name, start_position, end_position, action, plate_number, handler, robots_dict,
                  task_queue=None):
