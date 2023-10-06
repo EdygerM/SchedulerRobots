@@ -2,11 +2,11 @@ import logging
 import time
 
 
-class EdyMobile:
+class FleetManager:
     def __init__(self, name):
         # Initiate MobileRobot instance with a name
         self.name = name
-        logging.info(f"Edy mobile {self.name} initialized.")
+        logging.info(f"Fleet manager {self.name} initialized.")
 
     def send_task(self, task):
         """
@@ -19,7 +19,7 @@ class EdyMobile:
         except Exception as e:
             logging.error(f"An error occurred while sending task '{task}' to {self.name}: {str(e)}")
 
-    def wait_task_end(self, task):
+    def wait_task_end(self):
         """
         """
 

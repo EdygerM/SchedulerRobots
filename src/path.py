@@ -1,31 +1,38 @@
-from src.edy_mobile_robot import EdyMobile
+from fleet_manager import FleetManager
+from file_loader import load_json_file
+import logging
 
 
-# Class for a Path that has a series of tasks that can be executed by the robots
 class Path:
-    def __init__(self, ID, Name, StartPosition, EndPosition, Action, PlateNumber, handler, robots_dict,
+    def __init__(self, name, start_position, end_position, action, plate_number, handler, robots_dict,
                  task_queue=None):
-        self.ID = ID
-        self.Name = Name
-        self.StartPosition = StartPosition
-        self.EndPosition = EndPosition
-        self.Action = Action
-        self.PlateNumber = PlateNumber
+        self.name = name
+        self.start_position = start_position
+        self.end_position = end_position
+        self.action = action
+        self.plate_number = plate_number
         self.handler = handler
-        self.EM = EdyMobile("EM")
+        self.EM = FleetManager("EM")
         self.robots_dict = robots_dict
         self.task_queue = task_queue or self.initialize_task_queue()
         self.stop_thread = False
+
+    @classmethod
+    def from_config(cls, config_file, handler, universal_robots, task_queue):
+        path_data = load_json_file(config_file)
+        return cls(path_data['Name'], path_data['StartPosition'],
+                   path_data['EndPosition'], path_data['Action'], path_data['PlateNumber'], handler,
+                   universal_robots, task_queue)
 
     def initialize_task_queue(self):
         """
         Initialize the task queue with tasks for the robots
         """
 
-        return [(self.EM, f"EM_to_{self.StartPosition}", "NotDone"),
-                (self.robots_dict[("UR_" + self.StartPosition)], "Place", "NotDone"),
-                (self.EM, f"EM_{self.StartPosition}_to_{self.EndPosition}", "NotDone"),
-                (self.robots_dict[("UR_" + self.EndPosition)], "Pick", "NotDone")]
+        return [(self.EM, f"EM_to_{self.start_position}", "NotDone"),
+                (self.robots_dict[("UR_" + self.start_position)], "Place", "NotDone"),
+                (self.EM, f"EM_{self.start_position}_to_{self.end_position}", "NotDone"),
+                (self.robots_dict[("UR_" + self.end_position)], "Pick", "NotDone")]
 
     def execute_tasks(self):
         """
@@ -49,6 +56,7 @@ class Path:
                 self.handler.save_state()
         if not self.task_queue:
             self.handler.remove_path(self)
+            logging.info(f"Stopped tasks for path {self.name}")
 
     def stop_tasks(self):
         """
@@ -63,11 +71,10 @@ class Path:
         """
 
         return {
-            "ID": self.ID,
-            "Name": self.Name,
-            "StartPosition": self.StartPosition,
-            "EndPosition": self.EndPosition,
-            "Action": self.Action,
-            "PlateNumber": self.PlateNumber,
+            "Name": self.name,
+            "start_position": self.start_position,
+            "end_position": self.end_position,
+            "Action": self.action,
+            "PlateNumber": self.plate_number,
             "TaskQueue": [(robot.name, task, state) for robot, task, state in self.task_queue]
         }

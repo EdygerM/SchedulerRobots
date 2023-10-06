@@ -16,7 +16,8 @@ class SchedulerRobot:
         inputObserver (Observer): Monitors changes in the input path.
     """
 
-    def __init__(self, input_path: str) -> None:
+    def __init__(self, input_path: str, universal_robot_setup_file: str,
+                 state_file: str) -> None:
         """
         Initializes a new instance of the SchedulerRobot class.
 
@@ -26,7 +27,7 @@ class SchedulerRobot:
         Args:
             input_path (str): The path to be monitored by the observer.
         """
-        self.tasksHandler = TasksHandler(config.get('GENERAL', 'UR_SETUP_FILE'), config.get('GENERAL', 'STATE_FILE'))
+        self.tasksHandler = TasksHandler(universal_robot_setup_file, state_file)
         self.inputObserver = Observer()
         self.inputObserver.schedule(self.tasksHandler, input_path, recursive=False)
         self.inputObserver.start()
