@@ -1,4 +1,4 @@
-from universal_robot import UniversalRobot
+from universal_robots import UniversalRobots
 import logging
 import time
 
@@ -7,12 +7,13 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
+
 class RobotHandler:
     def __init__(self):
         super().__init__()
-        self.urSFC = UniversalRobot("UR_SFC", "172.31.0.14", 7993)
-        self.urNMR = UniversalRobot("UR_NMR", "172.31.0.14", 7992)
-        self.pcNMR = UniversalRobot("PC_NMR", "172.31.0.14", 8001)
+        self.urSFC = UniversalRobots("UR_SFC", "172.31.0.14", 7993)
+        self.urNMR = UniversalRobots("UR_NMR", "172.31.0.14", 7992)
+        self.pcNMR = UniversalRobots("PC_NMR", "172.31.0.14", 8001)
 
         self.urSFC.start_server()
         self.urNMR.start_server()
